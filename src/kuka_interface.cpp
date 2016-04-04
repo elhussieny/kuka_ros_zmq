@@ -11,14 +11,15 @@ using namespace ros_kuka::flatbuffer;
 /*------------------------------------------------------------------------------------*/
 class KUKAInterface{
 private:
-public:
 	ros::Subscriber kuka_sub;								//subscriber for internal ROS message (Desired Pose)
 	ros::Subscriber kuka_pub;                               //publisher for internal ROS message (Current Joints)
 	zmq::socket_t* publisher;								//zmq publisher for kuka
 	//zmq::socket_t* subscriber;								//zmq subscriber from kuka
+public:
+
 
 	KUKAInterface(ros::NodeHandle nh_,zmq::context_t & context){
-		std::string input_pose_topic = "/kuka_interface/kuka_pose";
+		std::string input_pose_topic = "/kuka_interface/kuka_pose"; // rostopic that will receive the ROS pose
 
 		this->kuka_sub = nh_.subscribe(input_pose_topic,1,&KUKAInterface::KukaGoalCallback, this);
 		this->publisher=new zmq::socket_t(context,ZMQ_PUB);
