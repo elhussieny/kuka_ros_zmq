@@ -1,0 +1,30 @@
+namespace ros_kuka.flatbuffer;
+
+// pos in meter
+struct Vector3 {
+x:double;
+y:double;
+z:double;
+}
+
+
+struct Quaternion {
+x:double;
+y:double;
+z:double;
+w:double;
+}
+
+struct RPY {
+alpha:double;
+beta:double;
+gamma:double;
+}
+
+table kukaDesPose{
+position:Vector3;
+orientation:Quaternion (deprecated);
+rotation:RPY;
+}
+
+root_type kukaDesPose;
