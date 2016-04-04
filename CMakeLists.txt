@@ -194,4 +194,4 @@ target_link_libraries(kuka_interface ${catkin_LIBRARIES} zmq)
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-set(CMAKE_CXX_FLAGS "--std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "--std=c++11 -lzmq ${CMAKE_CXX_FLAGS}")
