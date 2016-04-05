@@ -68,8 +68,14 @@ int main(int argc, char** argv)
    zmq::context_t context (1);
    KUKAInterface kukaObject(nh_,context);
    std::cout<<"Socket Started. Waiting DesPose message..."<<std::endl;
-	   ros::spin();
+	   while(ros::ok)
+		   {ros::spinOnce();
+
+
+
+		   }
    kukaObject.destroy();
    std::cout<<"Socket Closed!"<<std::endl;
+
   return 0;
  }
