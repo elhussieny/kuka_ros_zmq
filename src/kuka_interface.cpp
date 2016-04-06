@@ -6,16 +6,19 @@
 #include <zmq.hpp>
 #include <signal.h>
 #include "kuka_ros_zmq/kukaState_generated.h"
+#include "kuka_ros_zmq/kukaJoints_generated.h"
 #define PI 3.1415926
 
 using namespace ros_kuka::flatbuffer;
+using namespace kuka_joints::flatbuffer;
 /*------------------------------------------------------------------------------------*/
 class KUKAInterface{
 private:
 	ros::Subscriber kuka_sub;								//subscriber for internal ROS message (Desired Pose)
 	ros::Subscriber kuka_pub;                               //publisher for internal ROS message (Current Joints)
 	zmq::socket_t* publisher;								//zmq publisher for kuka
-	//zmq::socket_t* subscriber;								//zmq subscriber from kuka
+	zmq::socket_t* subscriber;								//zmq subscriber from kuka
+	std::vector<double>jointsV;
 public:
 
 
@@ -23,8 +26,15 @@ public:
 		std::string input_pose_topic = "/kuka_interface/kuka_pose"; // rostopic that will receive the ROS pose
 
 		this->kuka_sub = nh_.subscribe(input_pose_topic,1,&KUKAInterface::kukaGoalCallback, this);
+
 		this->publisher=new zmq::socket_t(context,ZMQ_PUB);
 		publisher->bind("tcp://*:5555");
+
+		this->subscriber=new zmq::socket_t(context,ZMQ_SUB);
+		subscriber->bind("tcp://*:5558");
+		subscriber->setsockopt(ZMQ_SUBSCRIBE,"", 0);
+
+
 	}
 
 
@@ -43,20 +53,59 @@ public:
 		     					        	auto response=builder.Finish();
 		     					        	fbb.Finish(response);
 //
-		     					           zmq::message_t request (fbb.GetSize());
-		     			     memcpy ((void *)request.data (),fbb.GetBufferPointer(), fbb.GetSize());
+		     					           zmq::message_t poseRequest (fbb.GetSize());
+		     			     memcpy ((void *)poseRequest.data (),fbb.GetBufferPointer(), fbb.GetSize());
 //
-		     					try{publisher->send(request);}
+		     					try{publisher->send(poseRequest);}
 		     					  catch(const zmq::error_t& ex)
 		     					  {printf("number %d \n",ex.num());
 		     					 if(ex.num() != EAGAIN) throw;
 
 		     					  }
-		     					  		     					  printf("Sent Data:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",pos.x(),pos.y(),pos.z(),rot.alpha(),rot.beta(),rot.gamma());
+		     					  printf("Sent Data:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",pos.x(),pos.y(),pos.z(),rot.alpha(),rot.beta(),rot.gamma());
 
 	}
+void readJoints(void){
+	zmq::message_t jointsReply;
 
-	void destroy(){std::cout<<std::endl<<"Exiting.."<<std::endl;publisher->close();}
+try{
+subscriber->recv(&jointsReply,ZMQ_NOBLOCK);
+if(jointsReply.size()>0)std::cout << "Received Data Size: "  <<(char*)jointsReply.size()/*repmsg->angleValue()*/<<std::endl;
+}
+catch(const zmq::error_t& ex)
+        {
+	printf("Errorff=%d\n",ex.num());
+            // recv() throws ETERM when the zmq context is destroyed,
+            //  as when AsyncZmqListener::Stop() is called
+
+	if(ex.num() != EAGAIN){printf("Error=%d\n",ex.num());throw;}
+
+        }
+if(jointsReply.size()>0){
+auto repmsg=kuka_joints::flatbuffer::GetkukaJoints(jointsReply.data());
+
+auto jointsVVV=repmsg->angleValue();
+jointsV.resize(jointsVVV->size());
+for(int i=0;i<jointsVVV->size();i++)
+	jointsV[i]=jointsVVV->Get(i);
+//auto j1=jointsVVV->Get(0);
+//for (flatbuffers::Vector<double>::const_iterator it = jointsVVV->begin() ; it != jointsVVV->end(); ++it)
+  // std::cout << ' ' << *it;
+
+for(int i=0;i<=6;i++)
+	     std::cout <<"Received Joints:"<<i<<"["<<jointsV[i]<<"]"<<std::endl;
+	    //    std::cout << "Received Joints:[1] " <<repmsg->angleValue()->data()<<std::endl;
+//	        std::cout << "Received Joints:[2] " <<repmsg->angleValue()->Get(2)<<std::endl;
+//	        std::cout << "Received Joints:[3] " <<repmsg->angleValue()->Get(3)<<std::endl;
+//	        std::cout << "Received Joints:[4] " <<repmsg->angleValue()->Get(4)<<std::endl;
+//	        std::cout << "Received Joints:[5] " <<repmsg->angleValue()->Get(5)<<std::endl;
+//	        std::cout << "Received Joints:[6] " <<repmsg->angleValue()->Get(6)<<std::endl;
+	        std::cout << "-------------------- " <<std::endl;
+
+}
+//printf("hi\n");
+}
+	void destroy(){std::cout<<std::endl<<"Exiting.."<<std::endl;publisher->close();subscriber->close();}
 
 };
 /*-----------------------------------------------------------------------------------------------------*/
@@ -68,10 +117,12 @@ int main(int argc, char** argv)
    zmq::context_t context (1);
    KUKAInterface kukaObject(nh_,context);
    std::cout<<"Socket Started. Waiting DesPose message..."<<std::endl;
-	   while(ros::ok)
-		   {ros::spinOnce();
 
+   while(nh_.ok())
+		   {
+		   ros::spinOnce();
 
+kukaObject.readJoints();
 
 		   }
    kukaObject.destroy();
