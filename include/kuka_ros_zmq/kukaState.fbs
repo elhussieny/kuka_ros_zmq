@@ -23,7 +23,7 @@ gamma:double;
 
 table kukaDesPose{
 position:Vector3;
-orientation:Quaternion (deprecated);
+orientation:Quaternion;
 rotation:RPY;
 }
 

@@ -3,6 +3,7 @@ namespace kuka_joints.flatbuffer;
 table kukaJoints {
   // @todo consider adding name string
   angleValue:[double]; // angle in degrees
+  robotName:string;
  }
 
 root_type kukaJoints;

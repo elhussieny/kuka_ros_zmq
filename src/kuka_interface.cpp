@@ -36,7 +36,12 @@ public:
 
 
 	}
+	/*------------------------------------------------------------------------------------*/
 
+~KUKAInterface(){
+	this->destroy();
+}
+/*------------------------------------------------------------------------------------*/
 
 	void kukaGoalCallback(const geometry_msgs::PosePtr& intendedPose)
 	{
@@ -65,45 +70,34 @@ public:
 		     					  printf("Sent Data:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",pos.x(),pos.y(),pos.z(),rot.alpha(),rot.beta(),rot.gamma());
 
 	}
+	/*------------------------------------------------------------------------------------*/
+
 void readJoints(void){
 	zmq::message_t jointsReply;
 
 try{
 subscriber->recv(&jointsReply,ZMQ_NOBLOCK);
-if(jointsReply.size()>0)std::cout << "Received Data Size: "  <<(char*)jointsReply.size()/*repmsg->angleValue()*/<<std::endl;
+if(jointsReply.size()>0)std::cout << "Received Data Size: "  <<jointsReply.size()/*repmsg->angleValue()*/<<std::endl;
 }
 catch(const zmq::error_t& ex)
         {
-	printf("Errorff=%d\n",ex.num());
             // recv() throws ETERM when the zmq context is destroyed,
             //  as when AsyncZmqListener::Stop() is called
-
-	if(ex.num() != EAGAIN){printf("Error=%d\n",ex.num());throw;}
+	if(ex.num() != EAGAIN){printf("Error=%d\n",ex.num());this->destroy();throw;}
 
         }
 if(jointsReply.size()>0){
 auto repmsg=kuka_joints::flatbuffer::GetkukaJoints(jointsReply.data());
-
+auto nameRobot=repmsg->robotName();
 auto jointsVVV=repmsg->angleValue();
-jointsV.resize(jointsVVV->size());
-for(int i=0;i<jointsVVV->size();i++)
-	jointsV[i]=jointsVVV->Get(i);
-//auto j1=jointsVVV->Get(0);
-//for (flatbuffers::Vector<double>::const_iterator it = jointsVVV->begin() ; it != jointsVVV->end(); ++it)
-  // std::cout << ' ' << *it;
-
+std::cout <<"Robot Name:"<<"["<<nameRobot->c_str()<<"]"<<std::endl;
 for(int i=0;i<=6;i++)
-	     std::cout <<"Received Joints:"<<i<<"["<<jointsV[i]<<"]"<<std::endl;
-	    //    std::cout << "Received Joints:[1] " <<repmsg->angleValue()->data()<<std::endl;
-//	        std::cout << "Received Joints:[2] " <<repmsg->angleValue()->Get(2)<<std::endl;
-//	        std::cout << "Received Joints:[3] " <<repmsg->angleValue()->Get(3)<<std::endl;
-//	        std::cout << "Received Joints:[4] " <<repmsg->angleValue()->Get(4)<<std::endl;
-//	        std::cout << "Received Joints:[5] " <<repmsg->angleValue()->Get(5)<<std::endl;
-//	        std::cout << "Received Joints:[6] " <<repmsg->angleValue()->Get(6)<<std::endl;
-	        std::cout << "-------------------- " <<std::endl;
+	     std::cout <<"Joints:"<<"["<<i<<"]"<<"="<<jointsVVV->Get(i)*180/PI<<" deg"<<std::endl;
+         std::cout << "-------------------- " <<std::endl;
 
 }
-//printf("hi\n");
+/*------------------------------------------------------------------------------------*/
+
 }
 	void destroy(){std::cout<<std::endl<<"Exiting.."<<std::endl;publisher->close();subscriber->close();}
 
