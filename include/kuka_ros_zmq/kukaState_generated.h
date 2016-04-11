@@ -69,13 +69,16 @@ STRUCT_END(RPY, 24);
 struct kukaDesPose FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_POSITION = 4,
+    VT_ORIENTATION = 6,
     VT_ROTATION = 8
   };
   const Vector3 *position() const { return GetStruct<const Vector3 *>(VT_POSITION); }
+  const Quaternion *orientation() const { return GetStruct<const Quaternion *>(VT_ORIENTATION); }
   const RPY *rotation() const { return GetStruct<const RPY *>(VT_ROTATION); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<Vector3>(verifier, VT_POSITION) &&
+           VerifyField<Quaternion>(verifier, VT_ORIENTATION) &&
            VerifyField<RPY>(verifier, VT_ROTATION) &&
            verifier.EndTable();
   }
@@ -85,6 +88,7 @@ struct kukaDesPoseBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_position(const Vector3 *position) { fbb_.AddStruct(kukaDesPose::VT_POSITION, position); }
+  void add_orientation(const Quaternion *orientation) { fbb_.AddStruct(kukaDesPose::VT_ORIENTATION, orientation); }
   void add_rotation(const RPY *rotation) { fbb_.AddStruct(kukaDesPose::VT_ROTATION, rotation); }
   kukaDesPoseBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   kukaDesPoseBuilder &operator=(const kukaDesPoseBuilder &);
@@ -96,9 +100,11 @@ struct kukaDesPoseBuilder {
 
 inline flatbuffers::Offset<kukaDesPose> CreatekukaDesPose(flatbuffers::FlatBufferBuilder &_fbb,
    const Vector3 *position = 0,
+   const Quaternion *orientation = 0,
    const RPY *rotation = 0) {
   kukaDesPoseBuilder builder_(_fbb);
   builder_.add_rotation(rotation);
+  builder_.add_orientation(orientation);
   builder_.add_position(position);
   return builder_.Finish();
 }
