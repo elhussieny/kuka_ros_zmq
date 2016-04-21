@@ -1,41 +1,41 @@
 #include <iostream>
 #include "kuka_ros_zmq/KUKAInterface.h"
 void GUICallback(kuka_ros_zmq::KUKAcontrolConfig &config, uint32_t level);
+void GUICallbackPose(kuka_ros_zmq::KUKACartcontrolConfig &config, uint32_t level);
+ros::Publisher kukaDesired2;
+bool FIRSTRUN = true;
 int main(int argc, char** argv)
  {
    ros::init(argc, argv, "kuka_control");
-   ros::NodeHandle nh_;
    zmq::context_t context (1);
-
-   KUKAInterface kukaObject(nh_,context);
-   ros::Rate rate(300); //30Hz
+   ros::NodeHandle nh_;
+   ros::Rate rate(10); //Rate of Control Loop
 
    std::cout<<"Socket Started. Waiting DesPose message..."<<std::endl;
-   // Set up a dynamic reconfigure server.
-	int j0,j1,j2,j3,j4,j5,j6;
+   KUKAInterface kukaObject(nh_,context);
+   kukaDesired2 = nh_.advertise<geometry_msgs::Pose>("/kuka_interface/kuka_pose",1);
 
-   nh_.param("/kuka_control/kuka_j0", j0, int(0));
-   nh_.param("/kuka_control/kuka_j1", j1, int(0));
-   nh_.param("/kuka_control/kuka_j2", j2, int(0));
-   nh_.param("/kuka_control/kuka_j3", j3, int(0));
-   nh_.param("/kuka_control/kuka_j4", j4, int(0));
-   nh_.param("/kuka_control/kuka_j5", j5, int(0));
-   nh_.param("/kuka_control/kuka_j6", j6, int(0));
+//
+//     dynamic_reconfigure::Server<kuka_ros_zmq::KUKAcontrolConfig> dr_srv;
+//   	 dynamic_reconfigure::Server<kuka_ros_zmq::KUKAcontrolConfig>::CallbackType cb;
+//   	 cb  =  boost::bind(&GUICallback, _1, _2);
+//   	 dr_srv.setCallback(cb);
 
-     dynamic_reconfigure::Server<kuka_ros_zmq::KUKAcontrolConfig> dr_srv;
-   	 dynamic_reconfigure::Server<kuka_ros_zmq::KUKAcontrolConfig>::CallbackType cb;
-   	 cb = boost::bind(&GUICallback, _1, _2);
-   	 dr_srv.setCallback(cb);
+     dynamic_reconfigure::Server<kuka_ros_zmq::KUKACartcontrolConfig> dr_srvPose;
+     dynamic_reconfigure::Server<kuka_ros_zmq::KUKACartcontrolConfig>::CallbackType cbPose;
+     cbPose  =  boost::bind(&GUICallbackPose, _1, _2);
+   	dr_srvPose.setCallback(cbPose);
 
 
-   while(nh_.ok())
+ //  	ros::WallTimer timer  =  nh_.createWallTimer(ros::WallDuration(0.1), &KUKAInterface::readJoints, &kukaObject);
+   while(ros::ok())
 		   {
 kukaObject.readJoints();
 ros::spinOnce();
-rate.sleep();
+//rate.sleep();
+   //    ros::spin();
 		   }
-  kukaObject.destroy();
-   std::cout<<"Socket Closed!"<<std::endl;
+
 
   return 0;
  }
@@ -46,3 +46,34 @@ void GUICallback(kuka_ros_zmq::KUKAcontrolConfig &config, uint32_t level) {
             config.mode);
 }
 
+void GUICallbackPose(kuka_ros_zmq::KUKACartcontrolConfig &config, uint32_t level) {
+	if(FIRSTRUN==false){ // not at begining!
+	geometry_msgs::Pose testPose;
+	ROS_INFO("POSE Request: %f %f %f %f %f %f %f",
+			  config.kuka_x,
+			  config.kuka_y,
+			  config.kuka_z,
+			  config.kuka_qx,
+			  config.kuka_qy,
+			  config.kuka_qz,
+			  config.kuka_qw
+
+	  );
+	testPose.position.x  =  config.kuka_x;
+	testPose.position.y  =  config.kuka_y;
+	testPose.position.z  =  config.kuka_z;
+
+	testPose.orientation.x  =  config.kuka_qx;
+	testPose.orientation.y  =  config.kuka_qy;
+	testPose.orientation.z  =  config.kuka_qz;
+	testPose.orientation.w = config.kuka_qw;
+	kukaDesired2.publish(testPose);
+
+	}
+
+
+	FIRSTRUN=false;
+
+
+
+}

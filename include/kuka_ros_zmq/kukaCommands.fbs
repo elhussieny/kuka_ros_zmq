@@ -1,0 +1,34 @@
+namespace ros_kuka.flatbuffer;
+
+enum ControlMode : byte { BackHome=0, Joints, CartesianPTP, CartesianSS, CartesianDS}
+
+// pos in meter
+struct Vector3 {
+x:double;
+y:double;
+z:double;
+}
+
+
+struct Quaternion {
+x:double;
+y:double;
+z:double;
+w:double;
+}
+
+struct RPY {
+alpha:double;
+beta:double;
+gamma:double;
+}
+
+table kukaDesPose{
+position:Vector3;
+orientation:Quaternion;
+rotation:RPY;
+control:ControlMode=Joints;
+joints:[double]; // angle in degrees
+}
+
+root_type kukaDesPose;

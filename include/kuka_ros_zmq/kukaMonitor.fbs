@@ -1,0 +1,28 @@
+namespace kuka_joints.flatbuffer;
+
+// pos in meter
+struct Vector3 {
+x:double;
+y:double;
+z:double;
+}
+
+
+struct Quaternion {
+x:double;
+y:double;
+z:double;
+w:double;
+}
+
+
+
+table kukaJoints {
+  // @todo consider adding name string
+  angleValue:[double]; // angle in degrees
+  posValue:Vector3;
+  rotValue:Quaternion;
+  robotName:string;
+ }
+
+root_type kukaJoints;

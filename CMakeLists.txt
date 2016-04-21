@@ -21,6 +21,7 @@ find_package(Eigen REQUIRED)
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
    cfg/KUKAcontrol.cfg
+   cfg/KUKACartcontrol.cfg
  )
 
 	  
@@ -35,7 +36,7 @@ catkin_package(
 include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS} 
 )
 
 add_executable(kuka_interface src/kuka_interface.cpp) 
@@ -44,7 +45,7 @@ add_executable(kuka_interface src/kuka_interface.cpp)
 target_link_libraries(kuka_interface ${catkin_LIBRARIES} ${PROJECT_NAME} ${Boost_LIBRARIES} zmq)
 add_dependencies(kuka_interface ${PROJECT_NAME}_gencfg)
 
-## Declare a cpp library
+## Declare a cpp library 
 add_library(${PROJECT_NAME}
 	include/kuka_ros_zmq/KUKAInterface.h
 	src/KUKAInterface.cpp
