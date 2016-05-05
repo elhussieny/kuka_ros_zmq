@@ -49,7 +49,19 @@ private:
 	zmq::message_t jointsReply;
 	ros::Timer* timer;
 	geometry_msgs::Pose KUKApose;
-
+	double kukaJoints[JOINTSNO];
+	// DH Parameters for the KUKA. Refer to Descriptions.png
+	double D1 = 0.36;
+	double D3 = 0.42;
+	double D5 = 0.40;
+	double D7 = 0.126;
+	const double JL[JOINTSNO] = { 169.0*PI / 180.0,
+	119.0*PI / 180.0,
+	169.0*PI / 180.0,
+	119.0*PI / 180.0,
+	169.0*PI / 180.0,
+	119.0*PI / 180.0,
+	174.0*PI / 180.0 };
 
 public:
 	KUKAInterface(ros::NodeHandle &nh_,zmq::context_t & context);
@@ -57,7 +69,8 @@ public:
 	void kukaGoalCallback(const geometry_msgs::PosePtr& intendedPose);
 	void kukaJointsCallback(const sensor_msgs::JointStatePtr& intendedJoints);
 	void kukaCalibrate(const std_msgs::StringPtr& command);
-	void readJoints(/*const ros::WallTimerEvent& event*/);
+	void readJoints();
+	bool getInverseKienamatics(const geometry_msgs::PosePtr& desiredPose, double* kJ);
 
 
 };

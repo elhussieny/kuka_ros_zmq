@@ -1,0 +1,11 @@
+<launch>
+<node name="openni_tracker" pkg="openni_tracker" type="openni_tracker" respawn="false" output="screen">
+ </node>
+<node name="hand_tracker" pkg="cog_grasp_mapping" type="hand_tracker" respawn="false" output="screen">
+ </node>
+ <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/camera/rgb/image_color"/>
+    <param name="autosize" value="false" />
+  </node>
+
+</launch>

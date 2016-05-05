@@ -49,16 +49,16 @@ void GUICallback(kuka_ros_zmq::KUKAcontrolConfig &config, uint32_t level) {
 void GUICallbackPose(kuka_ros_zmq::KUKACartcontrolConfig &config, uint32_t level) {
 	if(FIRSTRUN==false){ // not at begining!
 	geometry_msgs::Pose testPose;
-	ROS_INFO("POSE Request: %f %f %f %f %f %f %f",
-			  config.kuka_x,
-			  config.kuka_y,
-			  config.kuka_z,
-			  config.kuka_qx,
-			  config.kuka_qy,
-			  config.kuka_qz,
-			  config.kuka_qw
-
-	  );
+//	ROS_INFO("POSE Request: %f %f %f %f %f %f %f",
+//			  config.kuka_x,
+//			  config.kuka_y,
+//			  config.kuka_z,
+//			  config.kuka_qx,
+//			  config.kuka_qy,
+//			  config.kuka_qz,
+//			  config.kuka_qw
+//
+//	  );
 	testPose.position.x  =  config.kuka_x;
 	testPose.position.y  =  config.kuka_y;
 	testPose.position.z  =  config.kuka_z;
