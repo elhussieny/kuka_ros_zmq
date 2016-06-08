@@ -18,10 +18,10 @@
 
 #define KUKA_X_MAX 0.8
 #define KUKA_X_MIN 0.3
-#define KUKA_Y_MAX 0.4
+#define KUKA_Y_MAX 0.05
 #define KUKA_Y_MIN -0.7
-#define KUKA_Z_MAX 0.8
-#define KUKA_Z_MIN -0.2
+#define KUKA_Z_MAX 0.5
+#define KUKA_Z_MIN -0.150
 
 
 

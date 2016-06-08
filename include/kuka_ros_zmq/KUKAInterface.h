@@ -37,8 +37,6 @@ using namespace kuka_joints::flatbuffer;
 class KUKAInterface{
 private:
 	ros::Subscriber kuka_sub;								//subscriber for internal ROS message (Desired Pose)
-	ros::Subscriber kuka_joints_sub;								//subscriber for internal ROS message (Desired Joints)
-	ros::Subscriber kuka_calib_command;
 	ros::Publisher kuka_pub_joint[JOINTSNO];                               //publisher for internal ROS message (Current Joints)
 	ros::Publisher kuka_pose_pub;
 	zmq::socket_t* publisher;								//zmq publisher for kuka
@@ -47,8 +45,11 @@ private:
 	char jntPubName [10];
 	std_msgs::Float64 jointMsg;
 	zmq::message_t jointsReply;
-	ros::Timer* timer;
 	geometry_msgs::Pose KUKApose;
+	geometry_msgs::Pose finalPose;
+	int control_mode=0;
+	int close_gripper=0;
+
 	double kukaJoints[JOINTSNO];
 	// DH Parameters for the KUKA. Refer to Descriptions.png
 	double D1 = 0.36;
@@ -62,15 +63,16 @@ private:
 	169.0*PI / 180.0,
 	119.0*PI / 180.0,
 	174.0*PI / 180.0 };
+	double timeTaken=0;
 
 public:
-	KUKAInterface(ros::NodeHandle &nh_,zmq::context_t & context);
+	KUKAInterface(ros::NodeHandle &nh_, zmq::context_t & context);
 	~KUKAInterface();
 	void kukaGoalCallback(const geometry_msgs::PosePtr& intendedPose);
-	void kukaJointsCallback(const sensor_msgs::JointStatePtr& intendedJoints);
-	void kukaCalibrate(const std_msgs::StringPtr& command);
 	void readJoints();
 	bool getInverseKienamatics(const geometry_msgs::PosePtr& desiredPose, double* kJ);
+
+
 
 
 };

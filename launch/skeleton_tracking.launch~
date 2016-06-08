@@ -1,4 +1,6 @@
 <launch>
+<node name="hand_tracker" pkg="cog_grasp_mapping" type="hand_tracker" respawn="true" output="log">
+ </node>
 <node name="grasp_planning" pkg="cog_grasp_mapping" type="grasp_planning" respawn="false" output="screen">
  </node>
 <node name="kuka_control" pkg="kuka_ros_zmq" type="kuka_interface" respawn="false" output="screen">

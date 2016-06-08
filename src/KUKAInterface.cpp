@@ -1,18 +1,13 @@
 #include <iostream>
 #include "kuka_ros_zmq/KUKAInterface.h"
 
-KUKAInterface::KUKAInterface(ros::NodeHandle &nh_,zmq::context_t & context){
-
-
-
+KUKAInterface::KUKAInterface(ros::NodeHandle &nh_, zmq::context_t & context){
 	std::string input_pose_topic = "/kuka_interface/kuka_pose"; // rostopic that will receive the ROS pose
 	std::string output_pose_topic = "/kuka_interface/kuka_rec_pose"; // rostopic that will receive the ROS pose
 	std::string input_joints_topic = "/kuka_interface/kuka_joints"; // rostopic that will receive the ROS pose
 		std::string output_joints_topic = "/kuka_interface/kuka_rec_joints"; // rostopic that will receive the ROS pose
 
 	this->kuka_sub = nh_.subscribe(input_pose_topic,1,&KUKAInterface::kukaGoalCallback,this);
-	this->kuka_joints_sub = nh_.subscribe(input_joints_topic,1,&KUKAInterface::kukaJointsCallback,this);
-	this->kuka_calib_command = nh_.subscribe("/kuka_start_claib",1,&KUKAInterface::kukaCalibrate,this);
 
 	this->publisher=new zmq::socket_t(context,ZMQ_PUB);
 	publisher->setsockopt(ZMQ_SNDHWM,1); // one message only!
@@ -41,7 +36,9 @@ KUKAInterface::KUKAInterface(ros::NodeHandle &nh_,zmq::context_t & context){
 
 	}
 	   this->kuka_pose_pub=nh_.advertise<geometry_msgs::Pose>(output_pose_topic,1);
-	//   this->timer = nh_.createTimer(ros::Duration(0.1), &KUKAInterface::readJoints,&this);
+std::cout<<"Choose the control mode ? [0:Direct   1:Shared    2:Autonomous]"<<std::endl;
+std::cin>>this->control_mode;
+std::cout<<"control mode: "<<this->control_mode<<std::endl;
 }
 /*------------------------------------------------------------------------------------*/
 KUKAInterface::~KUKAInterface(){
@@ -53,16 +50,22 @@ KUKAInterface::~KUKAInterface(){
 void KUKAInterface::kukaGoalCallback(const geometry_msgs::PosePtr& intendedPose)
 {
 
-	intendedPose->position.x = BOUND(intendedPose->position.x+0.2,KUKA_X_MIN,KUKA_X_MAX);
+	// For bounded reigon (For Safety)
+/*	intendedPose->position.x = BOUND(intendedPose->position.x,KUKA_X_MIN,KUKA_X_MAX);
 	intendedPose->position.y = BOUND(intendedPose->position.y,KUKA_Y_MIN,KUKA_Y_MAX);
 	intendedPose->position.z = BOUND(intendedPose->position.z,KUKA_Z_MIN,KUKA_Z_MAX);
-
+*/
+	printf("Pose:[%.3f,%.3f,%.3f] \n",intendedPose->position.x,intendedPose->position.y,intendedPose->position.z);
 
 	if(!getInverseKienamatics(intendedPose,kukaJoints))
 	{
 		printf("Unavailable IK solution! \n");
 		return;
 	}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 										flatbuffers::FlatBufferBuilder fbb;
 										auto jointsIndex=fbb.CreateVector(kukaJoints,JOINTSNO);
 
@@ -81,7 +84,7 @@ void KUKAInterface::kukaGoalCallback(const geometry_msgs::PosePtr& intendedPose)
 	     					        //	builder.add_position(&pos);
 	     			 		        //	builder.add_rotation(&rot);
 	     			 		        //	builder.add_orientation(&q);
-	     			 		        	builder.add_joints(jointsIndex);
+	     			 		        	builder.add_joints(jointsIndex); // Now we solve IK and sendjoint values
 
 	     			 		       // 	if(pos.x()==0&&pos.y()==0&&pos.z()==0)builder.add_control(ControlMode_BackHome);
 	     			 		        //	else builder.add_control(ControlMode_CartesianPTP);
@@ -100,45 +103,15 @@ void KUKAInterface::kukaGoalCallback(const geometry_msgs::PosePtr& intendedPose)
 	     					 if(ex.num() != EAGAIN) throw;
 
 	     					  }
-	     					printf("Sent Data:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",kukaJoints[0]*180/PI,
-	     							kukaJoints[1]*180/PI,kukaJoints[2]*180/PI,kukaJoints[3]*180/PI,kukaJoints[4]*180/PI,
-	     							kukaJoints[5]*180/PI,kukaJoints[6]*180/PI);
+	     	//				printf("Sent Joints:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",kukaJoints[0]*180/PI,
+	     	//						kukaJoints[1]*180/PI,kukaJoints[2]*180/PI,kukaJoints[3]*180/PI,kukaJoints[4]*180/PI,
+	     		//					kukaJoints[5]*180/PI,kukaJoints[6]*180/PI);
 
 }
 /*------------------------------------------------------------------------------------*/
-void KUKAInterface::kukaJointsCallback(const sensor_msgs::JointStatePtr& intendedJoints)
-{
-//TODO
-	std::cout<<"Position"<<intendedJoints->position[0]<<std::endl;
-	std::cout<<"Velocity"<<intendedJoints->velocity[0]<<std::endl;
-//std::vector<double> jointsControl(7,0);
-//
-//										flatbuffers::FlatBufferBuilder fbb;
-//
-//										ros_kuka::flatbuffer::kukaDesPoseBuilder builder(fbb);
-//
-//auto jv=fbb.CreateVector(&jointsControl,7);
-//	     			 		        	builder.add_joints(jv);
-//	     			 		        	builder.add_control(ControlMode_Joints);
-//
-//	     					        	auto response=builder.Finish();
-//	     					        	fbb.Finish(response);
-////
-//	     					           zmq::message_t poseRequest (fbb.GetSize());
-//	     			     memcpy ((void *)poseRequest.data (),fbb.GetBufferPointer(), fbb.GetSize());
-////
-//	     					try{publisher->send(poseRequest,ZMQ_NOBLOCK);}
-//	     					  catch(const zmq::error_t& ex)
-//	     					  {printf("number %d \n",ex.num());
-//	     					 if(ex.num() != EAGAIN) throw;
-//
-//	     					  }
-//	     				//	  printf("Sent Data:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",pos.x(),pos.y(),pos.z(),q.x(),q.y(),q.z(),q.w());
-
-}
-/*------------------------------------------------------------------------------------*/
-
 void KUKAInterface::readJoints( /*const ros::WallTimerEvent& event*/){
+
+	//printf("Error");
 try{
 subscriber->recv(&jointsReply,ZMQ_NOBLOCK);
 //if(jointsReply.size()>0)std::cout << "Received Data Size: "  <<jointsReply.size()/*repmsg->angleValue()*/<<std::endl;
@@ -156,15 +129,20 @@ auto nameRobot=repmsg->robotName();
 auto jointsVVV=repmsg->angleValue();
 auto robotPos=repmsg->posValue();
 auto robotRot=repmsg->rotValue();
-////std::cout <<"Robot Name:"<<"["<<nameRobot->c_str()<<"]"<<std::endl;
-//printf("Position: [%.2f, %.2f, %.2f] \n",robotPos->x(),robotPos->y(),robotPos->z());
-//printf("Position: [%.2f, %.2f, %.2f, <%.2f>] \n",robotRot->x(),robotRot->y(),robotRot->z(),robotRot->w());
-//std::cout <<"======================================"<<std::endl;
+//std::cout <<"Robot Name:"<<"["<<nameRobot->c_str()<<"]"<<std::endl;
+/*
+printf("Position: [%.2f, %.2f, %.2f] \n",robotPos->x(),robotPos->y(),robotPos->z());
+printf("Oriention: [%.2f, %.2f, %.2f, <%.2f>] \n",robotRot->x(),robotRot->y(),robotRot->z(),robotRot->w());
+std::cout <<"======================================"<<std::endl;
+*/
 
-KUKApose.position.x=robotPos->x();   KUKApose.position.y=robotPos->y();   KUKApose.position.z=robotPos->z();
+KUKApose.position.x=robotPos->x()/1000;   KUKApose.position.y=robotPos->y()/1000;   KUKApose.position.z=robotPos->z()/1000;
   KUKApose.orientation.x=robotRot->x();   KUKApose.orientation.y=robotRot->y();   KUKApose.orientation.z=robotRot->z(); KUKApose.orientation.w=robotRot->w();
   this->kuka_pose_pub.publish(KUKApose);
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 for(int i=0;i<=6;i++){
   // std::cout <<"Joints:"<<"["<<i<<"]"<<"="<<jointsVVV->Get(i)*180/PI<<" deg"<<std::endl;
@@ -176,57 +154,6 @@ for(int i=0;i<=6;i++){
 }
 }
 /*------------------------------------------------------------------------------------*/
-
-
-
-void KUKAInterface::kukaCalibrate(const std_msgs::StringPtr& command){
-double calibPose[10][6]={{-96.97,-575.76,103.03,51.98,1.52,-7.43},
-	{-106.08,-513.06,34,35.17,17.75,-64.44},
-	{-207.7,-520.39,139.85,62.47,-1.83,-55.15},
-	{-170,-569.70,88.28,115.85,41.28,-34.11},
-	{-159.82,-437.26,35.81,106.92,27.88,24.86},
-	{-244.34,-514.76,50.16,108.21,2.51,-23.56},
-	{-244.36,-514.76,50.16,-121.52,16.95,16.80},
-	{-158.47,-547.26,113.36,83.50,26.84,1.35},
-	{-231.94,-414.8,37.52,92.25,1.15,-9.79},
-	{-83.08,-609.83,10.14,95.49,-0.24,22.67}};
-
-	 char fine;
-	 std::cout << "Kinect IR Ready ? (y/N) ";
-	 std::cin >> fine;
-	 printf("Calibration Starts \n");
-	 printf("=================== \n");
-for(int pose=0;pose<10;pose++)
-{
-
-	printf("Point [%d]: \n",pose);
-	flatbuffers::FlatBufferBuilder fbb;
- 	ros_kuka::flatbuffer::kukaDesPoseBuilder builder(fbb);
- 	ros_kuka::flatbuffer::Vector3 pos(calibPose[pose][0],calibPose[pose][1],calibPose[pose][2]);
-    	RPY rot(calibPose[pose][3],calibPose[pose][4],calibPose[pose][5]); //
- 	builder.add_position(&pos);
-  	builder.add_rotation(&rot);
-  //	else builder.add_control(ControlMode_CartesianPTP);
-	builder.add_control(ControlMode_CartesianPTP);
- 	auto response=builder.Finish();
- 	fbb.Finish(response);
-//
-    zmq::message_t poseRequest (fbb.GetSize());
-memcpy ((void *)poseRequest.data (),fbb.GetBufferPointer(), fbb.GetSize());
-//
-try{publisher->send(poseRequest,ZMQ_NOBLOCK);}
-catch(const zmq::error_t& ex)
-{printf("number %d \n",ex.num());if(ex.num() != EAGAIN) throw;}
-printf("Sent Data:[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f] \n",pos.x(),pos.y(),pos.z(),rot.alpha(),rot.beta(),rot.gamma());
-
- std::cout << "Daijoubo ? (y/N) ";
- std::cin >> fine;
-printf("---------------------\n");
-
-}
-printf("Good Luck !!\n");
-}
-/*****************************************************************************************************/
 bool KUKAInterface::getInverseKienamatics(const geometry_msgs::PosePtr& desiredPose, double* kJ)
 {
     bool output = true;
@@ -234,8 +161,7 @@ bool KUKAInterface::getInverseKienamatics(const geometry_msgs::PosePtr& desiredP
 	// Auxiliary variables
 		double mod_pW, mod_pWxy, c2, s2, c3, s3;
 			Eigen::Vector3d p(desiredPose->position.x,desiredPose->position.y, desiredPose->position.z-D1);
-			Eigen::Quaterniond R = Eigen::Quaterniond(0.5/*desiredPose->orientation.x*/,
-					0.5/*desiredPose->orientation.y*/,0.5/*desiredPose->orientation.z*/,0.5/*desiredPose->orientation.w*/);
+			Eigen::Quaterniond R = Eigen::Quaterniond(0,0,-0.70711,-0.70711);
 
 
             Eigen::Vector3d pW = p-(D7 *R.toRotationMatrix().col(2));
@@ -245,7 +171,7 @@ bool KUKAInterface::getInverseKienamatics(const geometry_msgs::PosePtr& desiredP
 
 					c3 = (mod_pW - D3*D3 - D5*D5)/(2*D3*D5);
 					// If c3>1, there is no solution for IKT
-					if (c3>1){printf("NOT --- REACHABLE! c=%.3f \n",c3);output= false;
+					if (c3>1){/*printf("NOT --- REACHABLE! c=%.3f \n",c3);*/output= false;
 					for(int j=0;j<7;j++) kJ[j]=0;
 
 					return output;
@@ -291,7 +217,7 @@ bool KUKAInterface::getInverseKienamatics(const geometry_msgs::PosePtr& desiredP
 								printf("Warning!!! IK gives values out of bounds for joint %d \n", i);
 							}
 							//
-							//printf("Joint [%d]: %.3f \n", i, kJ[i] * 180 / PI);
+							printf("Joint [%d]: %.3f \n", i, kJ[i] * 180 / PI);
 						}
 						//
 						//
